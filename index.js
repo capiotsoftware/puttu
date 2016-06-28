@@ -1,16 +1,29 @@
 var zookeeper = require('node-zookeeper-client'),
   os = require('os'),
   uuid = require('uuid'),
-  assert = require('assert')
+  assert = require('assert');
 
-var client = null
-var basePath = null
+var client = null;
+var basePath = null;
 
-function getIPAddress(){
+function getIPAddress(interface){
   // 1. first check env variable PUTTU_PORT - process.env.PUTTU_INT
   // 2. then check the interface
   // 3. NOne of the above, fall back to eth0
-  return 'localhost'
+  if(!process.env.PUTTU_IP){
+    if(interface){
+        //console.log(os.networkInterfaces()[interface][0].address);
+      return os.networkInterfaces()[interface][0].address;
+    }
+    else{
+        //console.log(os.networkInterfaces()["eth0"][0].address);
+      return os.networkInterfaces()['eth0'][0].address;
+    }
+  }
+  else{
+      //console.log(os.networkInterfaces()[process.env.PUTTU_INT][0].address);
+    return process.env.PUTTU_IP;
+  }
 } 
 
 function connect(_connectionString, _basepath){
@@ -25,12 +38,11 @@ function register(_path, _data, _interface){
   return new Promise((resolve, reject) => {
     if(!_path) reject('Missing config path.')
     if(!_data) reject('Missing config value')
-    var path = basePath + '/' + _path
+    var path = basePath + '/' + _path;
     create(path).then(
       () => {
-        var index = uuid.v4()
         var data = _data.protocol.toLowerCase() + '://' + getIPAddress(_interface) + ':' + _data.port + _data.api
-        client.create(path + '/' + index, new Buffer(data), zookeeper.CreateMode.EPHEMERAL, _e => {
+        client.create(path + '/' + _path, new Buffer(data), zookeeper.CreateMode.EPHEMERAL_SEQUENTIAL, _e => {
           if (_e) reject(_e)
           resolve();
         })
