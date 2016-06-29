@@ -65,10 +65,19 @@ function get(_path){
   var path = basePath + '/' + _path
   return new Promise((resolve, reject) => {
     client.getChildren(path,(_e, _d) => {
-      if(_e) reject()
-      if(_d.length < 1) reject()
+      if(_e){
+        reject();
+        return;  
+      }
+      if(_d.length < 1){
+        reject();
+        return; 
+      } 
       client.getData(path + '/' + _d[Math.floor(Math.random() * 100) % _d.length], (_e, _d) => {
-        if(_e) reject()
+        if(_e){
+          reject();
+          return;
+        } 
         resolve(_d.toString('utf8'))
       })
     })
