@@ -27,13 +27,30 @@ function getIPAddress(interface){
 } 
 
 function connect(_connectionString, _basepath){
-  assert.notEqual(_connectionString, undefined, 'Empty connection string')
-  client = zookeeper.createClient(_connectionString)
-  client.connect()
+  assert.notEqual(_connectionString, undefined, 'Empty connection string');
+  var data =   {
+    sessionTimeout: 1000,
+    spinDelay : 1000,
+    retries : 1
+  };
+  client = zookeeper.createClient(_connectionString,data);
+  client.connect();
+  client.on('state',function(state){
+    if(state === zookeeper.State.DISCONNECTED ||state === zookeeper.State.AUTH_FAILED || state === zookeeper.State.EXPIRED){
+      console.log('Zookeeper Disconnected, stopping service');
+      process.exit(0);
+    }
+  });
+  setTimeout(checkStatus,1500);
   create(_basepath)
   basePath = _basepath
 }
-
+function checkStatus(){
+  if(client.getState() === zookeeper.State.DISCONNECTED){
+    console.log('Zookeeper not found, stopping service');
+    process.exit(0);
+  }
+}
 function register(_path, _data, _interface){
   return new Promise((resolve, reject) => {
     if(!_path) reject('Missing config path.')
@@ -66,16 +83,16 @@ function get(_path){
   return new Promise((resolve, reject) => {
     client.getChildren(path,(_e, _d) => {
       if(_e){
-        reject();
+        reject(_e);
         return;  
       }
       if(_d.length < 1){
-        reject();
+        reject(new Error('Cannot find a microservice handler'));
         return; 
       } 
       client.getData(path + '/' + _d[Math.floor(Math.random() * 100) % _d.length], (_e, _d) => {
         if(_e){
-          reject();
+          reject(_e);
           return;
         } 
         resolve(_d.toString('utf8'))
