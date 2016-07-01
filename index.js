@@ -41,7 +41,7 @@ function connect(_connectionString, _basepath){
       process.exit(0);
     }
   });
-  setTimeout(checkStatus,1500);
+  setTimeout(checkStatus,5000);
   create(_basepath)
   basePath = _basepath
 }
